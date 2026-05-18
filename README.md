@@ -122,6 +122,8 @@ Right panel settings:
 - **Internet** → **On**
 - **Persistence** → **Files only**
 
+This notebook loads the embedding model in **GPU float16 (half precision)** to fit within 16 GB of GPU memory and maximize throughput.
+
 **Attach your model dataset:**
 - Right panel → **Input** → **+ Add Input**
 - Click **Your Datasets** tab
