@@ -353,12 +353,15 @@ fi
 # ===========================================================================
 step "Running the pre-flight checks"
 
-set +e
-(cd "$INSTALL_DIR/app" && EXTRACTOR_CONFIG="$CONFIG_FILE"    PYTHONDONTWRITEBYTECODE=1 "$VENV_PY" -m extractor doctor)
-DOCTOR_STATUS=$?
-set -e
-if [ "$DOCTOR_STATUS" -ne 0 ]; then
-  warn "some checks failed (see above) - installation continues"
+# A failing check here is informational, not fatal - so run it as the condition
+# of an `if`, which bash exempts from both `set -e` and the ERR trap. Note that
+# `set +e` alone would NOT do: with `set -E` the ERR trap still fires, and a
+# subshell would fire it twice.
+if EXTRACTOR_CONFIG="$CONFIG_FILE" PYTHONPATH="$INSTALL_DIR/app" \
+   PYTHONDONTWRITEBYTECODE=1 "$VENV_PY" -m extractor doctor; then
+  ok "all pre-flight checks passed"
+else
+  warn "some checks failed (see above) - the install itself is fine and continues"
   warn "fix them, then: sudo systemctl restart ${SERVICE_NAME}"
 fi
 
