@@ -61,6 +61,20 @@ Within a minute the log shows lines like:
 cycle 1 | ok 54 | fail 6 | 7.4s | saved=54
 ```
 
+### Updating
+
+The service runs from `/opt/content-extractor`, **not** from your git clone, so
+pulling alone changes nothing:
+
+```bash
+cd ~/embedding-worker-Notebook && git pull
+cd content-extractor-app && sudo bash install.sh   # copies the new code, restarts
+```
+
+The installer is idempotent and keeps your config. If you ever wonder which copy
+is actually running, the startup log line says so:
+`content-extractor 1.0.0 starting (… app=/opt/content-extractor/app/extractor)`.
+
 ---
 
 ## The panel

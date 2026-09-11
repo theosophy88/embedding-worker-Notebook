@@ -432,5 +432,8 @@ printf '    journalctl -fu %s          # live log\n' "$SERVICE_NAME"
 printf '    systemctl restart %s       # after editing the config\n' "$SERVICE_NAME"
 printf '    content-extractor doctor            # re-check everything\n'
 printf '    content-extractor test URL          # try one page, writes nothing\n\n'
+printf '  %sUpdating later%s\n' "$BOLD" "$RESET"
+printf '    git pull && sudo bash install.sh   # a pull alone does NOT update\n'
+printf '                                       # the running service in %s\n\n' "$INSTALL_DIR"
 printf '  Running more workers? Install on another box and give it a different\n'
 printf '  NODE_NAME - n8n hands every worker a different slice of the queue.\n\n'

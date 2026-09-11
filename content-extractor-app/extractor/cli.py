@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import pathlib
 import secrets
 import signal
 import sys
@@ -191,9 +192,10 @@ def main(argv: list[str] | None = None) -> int:
 
     settings = Settings.load()
     setup_logging(settings.log_level)
-    log.info("content-extractor %s starting (node_name=%s, config=%s)",
+    log.info("content-extractor %s starting (node_name=%s, config=%s, app=%s)",
              __version__, settings.node_name,
-             getattr(settings, "config_path", None) or "defaults+env")
+             getattr(settings, "config_path", None) or "defaults+env",
+             pathlib.Path(__file__).resolve().parent)
 
     if command == "doctor":
         return cmd_doctor(settings, args)
