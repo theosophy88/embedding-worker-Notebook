@@ -216,15 +216,13 @@ if [ "$OPT_WITH_BROWSER" -eq 1 ]; then
 fi
 
 # Make `python -m extractor` resolve from any directory, not just app/.
-"$VENV_PY" - "$INSTALL_DIR/app" <<'PYEOF'
-import pathlib, sys, sysconfig
-
-target = sys.argv[1]
-pth = pathlib.Path(sysconfig.get_paths()["purelib"]) / "content-extractor.pth"
-pth.write_text(target + "
-", encoding="utf-8")
-print(f"      import path: {pth}")
-PYEOF
+SITE_PACKAGES="$("$VENV_PY" -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
+if [ -d "$SITE_PACKAGES" ]; then
+  printf '%s\n' "$INSTALL_DIR/app" > "$SITE_PACKAGES/content-extractor.pth"
+  ok "import path registered (python -m extractor works from anywhere)"
+else
+  warn "site-packages not found - run the CLI from ${INSTALL_DIR}/app"
+fi
 
 # Convenience wrapper so `content-extractor doctor` works from anywhere.
 if [ -f "$SRC_DIR/bin/content-extractor" ]; then
@@ -268,6 +266,16 @@ if [ -f "$CONFIG_FILE" ]; then
 else
   cp "$SRC_DIR/config.example.env" "$CONFIG_FILE"
   ok "created ${CONFIG_FILE} from the example"
+fi
+
+# systemd's EnvironmentFile keeps everything after "=" - including a trailing
+# "# comment" - as part of the value, so "THREADS=24  # parallel" silently
+# becomes an invalid number and the default is used instead. Earlier versions
+# of config.example.env shipped comments like that; clean them up.
+if grep -qE '^[A-Z_]+=[^#]*[[:space:]]{2,}#' "$CONFIG_FILE"; then
+  cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
+  sed -i -E 's/^([A-Z_]+=[^#]*[^[:space:]#])[[:space:]]{2,}#.*$/\1/' "$CONFIG_FILE"
+  ok "removed inline # comments from ${CONFIG_FILE} (backup: ${CONFIG_FILE}.bak)"
 fi
 
 # --- n8n URL ---

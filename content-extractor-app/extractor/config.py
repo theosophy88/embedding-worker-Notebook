@@ -141,6 +141,7 @@ class Settings:
                 log.warning("Could not read config file %s: %s", path, exc)
         settings = cls()
         settings.config_path = str(path) if path else None
+        settings.ignored_keys = []
 
         for f in fields(cls):
             env_name = ENV_ALIASES.get(f.name, f.name.upper())
@@ -150,7 +151,15 @@ class Settings:
             try:
                 setattr(settings, f.name, _coerce(raw, f.type))
             except (TypeError, ValueError):
-                log.warning("Ignoring invalid value for %s: %r", env_name, raw)
+                # The usual cause: "THREADS=24  # parallel downloads". systemd
+                # passes everything after "=" through, comment included.
+                hint = ""
+                if "#" in str(raw):
+                    hint = (" - looks like an inline '#' comment; "
+                            "move it to its own line")
+                log.warning("Ignoring invalid value for %s: %r%s - using default %r",
+                            env_name, raw, hint, getattr(settings, f.name))
+                settings.ignored_keys.append(env_name)
         return settings
 
     # ------------------------------------------------------------------
@@ -194,6 +203,7 @@ class Settings:
         out = {f.name: getattr(self, f.name) for f in fields(self) if f.name not in hidden}
         out["api_key_set"] = bool(self.api_key)
         out["config_path"] = getattr(self, "config_path", None)
+        out["ignored_keys"] = list(getattr(self, "ignored_keys", []))
         return out
 
     def apply(self, updates: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:

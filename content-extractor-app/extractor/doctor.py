@@ -80,6 +80,17 @@ def check_config(settings) -> list[Check]:
         checks.append(Check("Config values", OK,
                             f"node_name={settings.node_name} "
                             f"batch={settings.batch_size} threads={settings.threads}"))
+
+    # Settings that could not be parsed fell back to defaults - the worker runs,
+    # just not the way the file says, which is worth failing loudly over.
+    ignored = list(getattr(settings, "ignored_keys", []))
+    if ignored:
+        checks.append(Check(
+            "Config parsing", FAIL,
+            f"ignored, using defaults instead: {', '.join(ignored)}",
+            "Most likely an inline '# comment' after the value - systemd keeps it "
+            "as part of the value. Put comments on their own line, then restart",
+        ))
     return checks
 
 
