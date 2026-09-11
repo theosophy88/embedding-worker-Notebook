@@ -27,8 +27,12 @@ notebooks, your own servers, or both at once - do the downloading in parallel.
 5. **Deactivate** the old *content extractor History* workflow — otherwise both
    compete for the same `pending` rows.
 
-> The API key lives in the three **Auth -** IF nodes (`mer30kehasti` by default).
-> Change it in all three, then update `N8N_API_KEY` in every worker.
+> The API key lives in the three **Auth -** IF nodes, shipped as
+> `REPLACE_WITH_YOUR_API_KEY`. Put your real key in all three, then use the
+> same value for `N8N_API_KEY` in every worker.
+>
+> Keep it out of git: re-exporting this workflow from n8n writes the key
+> you typed into the JSON, so redact it before committing.
 
 ---
 

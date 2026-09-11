@@ -31,7 +31,7 @@
             {
               "id": "c2799383-d0b6-452d-ba4c-b9a13530fb3a",
               "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
-              "rightValue": "mer30kehasti",
+              "rightValue": "REPLACE_WITH_YOUR_API_KEY",
               "operator": {
                 "type": "string",
                 "operation": "equals",
@@ -136,7 +136,7 @@
             {
               "id": "e335d564-16f0-45da-b7c0-e838546d83b7",
               "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
-              "rightValue": "mer30kehasti",
+              "rightValue": "REPLACE_WITH_YOUR_API_KEY",
               "operator": {
                 "type": "string",
                 "operation": "equals",
@@ -241,7 +241,7 @@
             {
               "id": "55ab3b4e-bc75-4425-925b-40bde9a09ba8",
               "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
-              "rightValue": "mer30kehasti",
+              "rightValue": "REPLACE_WITH_YOUR_API_KEY",
               "operator": {
                 "type": "string",
                 "operation": "equals",
@@ -490,7 +490,7 @@
     },
     {
       "parameters": {
-        "content": "## AUTH\nEvery webhook needs the header\n\n`X-API-Key: mer30kehasti`\n\nChange it in the three **Auth -** IF nodes.\n\n## BEFORE YOU ACTIVATE\nTurn OFF the old *content extractor History* workflow - it claims rows from the same queue.",
+        "content": "## AUTH\nEvery webhook needs the header\n\n`X-API-Key: <your key>`\n\nThe key is NOT stored in this file - after importing, set it in the three **Auth -** nodes.\n\n## BEFORE YOU ACTIVATE\nTurn OFF the old *content extractor History* workflow - it claims rows from the same queue.",
         "height": 320,
         "width": 320,
         "color": "2"

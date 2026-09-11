@@ -1,0 +1,13 @@
+# Never commit real configuration - it holds the n8n API key.
+config.env
+*.local.env
+*.bak
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
