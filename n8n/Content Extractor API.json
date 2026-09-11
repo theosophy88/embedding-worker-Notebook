@@ -27,6 +27,41 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2799383-d0b6-452d-ba4c-b9a13530fb3a",
+              "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
+              "rightValue": "mer30kehasti",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        -144
+      ],
+      "id": "0ba86ee0-8d87-4c96-a386-a01ca004c855",
+      "name": "Auth - Get Batch"
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "-- Atomically claim a batch of un-extracted news URLs for ONE worker.\n-- FOR UPDATE SKIP LOCKED lets unlimited workers claim in parallel\n-- without ever handing the same row to two of them.\nUPDATE public.news n\nSET status     = 'fetching',\n    node_name  = $1,\n    claimed_at = now()\nFROM (\n  SELECT id\n  FROM public.news\n  WHERE url IS NOT NULL\n    AND (status = 'pending' OR status IS NULL)\n  ORDER BY date\n  LIMIT LEAST(GREATEST(COALESCE($2::int, 25), 1), 500)\n  FOR UPDATE SKIP LOCKED\n) AS c\nWHERE n.id = c.id\nRETURNING n.id, n.rss_id, n.title, n.date, n.url;",
         "options": {
@@ -36,7 +71,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -160,
+        80,
         -224
       ],
       "id": "3ea580da-cfcb-4466-a09a-c6737ecb2885",
@@ -104,12 +139,47 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e335d564-16f0-45da-b7c0-e838546d83b7",
+              "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
+              "rightValue": "mer30kehasti",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        144
+      ],
+      "id": "8d586d6b-19bf-4e7c-8b98-9ff8440b4d6f",
+      "name": "Auth - Save Content"
+    },
+    {
+      "parameters": {
         "jsCode": "// Validate + normalise what the worker posted back, so a buggy client can\n// never push junk into the database.\nconst body = $input.first().json.body || {};\n\nconst MAX_CHARS = 10000;   // keep in sync with MAX_CONTENT_CHARS in the notebook\nconst MIN_CHARS = 150;     // keep in sync with MIN_CONTENT_CHARS in the notebook\n\nconst nodeName = String(body.node_name || 'unknown-worker').slice(0, 100);\nconst raw = Array.isArray(body.results) ? body.results : [];\n\nconst results = [];\nconst seen = new Set();\n\nfor (const r of raw) {\n  const id = Number(r && r.id);\n  if (!Number.isFinite(id) || seen.has(id)) continue;\n  seen.add(id);\n\n  // accept both {content: ...} and {text: ...}\n  let content = typeof r.content === 'string'\n    ? r.content\n    : (typeof r.text === 'string' ? r.text : '');\n\n  // Postgres text columns cannot hold NUL bytes\n  content = content.replace(/\\u0000/g, '').trim().slice(0, MAX_CHARS);\n\n  const ok = r.status === 'content' && content.length >= MIN_CHARS;\n\n  results.push({\n    id,\n    status: ok ? 'content' : 'error',\n    content: ok ? content : null,\n    error: ok ? null : String(r.error || `too short (${content.length} chars)`).slice(0, 300),\n  });\n}\n\nreturn [{ json: { node_name: nodeName, results, received: raw.length } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -160,
+        80,
         80
       ],
       "id": "f2f28d51-df21-4847-950d-1c035abc974b",
@@ -181,12 +251,47 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55ab3b4e-bc75-4425-925b-40bde9a09ba8",
+              "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
+              "rightValue": "mer30kehasti",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        416
+      ],
+      "id": "3cf64376-e3a5-4fd0-8ee3-84d462e400d0",
+      "name": "Auth - Worker Status"
+    },
+    {
+      "parameters": {
         "jsCode": "// Flatten the heartbeat into the 4 columns worker_status needs.\nconst body = $input.first().json.body || {};\n\nreturn [{\n  json: {\n    node_name:   String(body.node_name || 'unknown-worker').slice(0, 100),\n    worker_type: String(body.worker_type || 'content-extractor').slice(0, 50),\n    status:      String(body.status || 'running').slice(0, 30),\n    payload:     JSON.stringify(body),\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -160,
+        80,
         352
       ],
       "id": "8d1c2b85-04a5-4fb8-bc0d-e88f9c720936",
@@ -231,6 +336,23 @@
       ],
       "id": "bbd4f951-f2b6-4707-ac6c-ddbe371e1432",
       "name": "Respond - Status OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        624
+      ],
+      "id": "1bc9727e-6519-4061-8130-b9a73f937e82",
+      "name": "Respond - 401 Unauthorized"
     },
     {
       "parameters": {
@@ -390,7 +512,7 @@
     },
     {
       "parameters": {
-        "content": "## AUTH\nEvery webhook needs the header\n\n`X-API-Key: <your key>`\n\nThe key is checked by n8n itself, from the **Header Auth** credential on the three Webhook nodes. It is NOT stored in this file, so exports are safe to commit, and a bad key is rejected without running the workflow.\n\nTo rotate: change the credential once. There is no second place.\n\n## BEFORE YOU ACTIVATE\nTurn OFF the old *content extractor History* workflow - it claims rows from the same queue.",
+        "content": "## AUTH\nEvery webhook needs the header\n\n`X-API-Key: mer30kehasti`\n\nChange it in the three **Auth -** IF nodes.\n\n## BEFORE YOU ACTIVATE\nTurn OFF the old *content extractor History* workflow - it claims rows from the same queue.",
         "height": 320,
         "width": 320,
         "color": "2"
@@ -411,7 +533,25 @@
       "main": [
         [
           {
+            "node": "Auth - Get Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth - Get Batch": {
+      "main": [
+        [
+          {
             "node": "Claim Batch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - 401 Unauthorized",
             "type": "main",
             "index": 0
           }
@@ -444,7 +584,25 @@
       "main": [
         [
           {
+            "node": "Auth - Save Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth - Save Content": {
+      "main": [
+        [
+          {
             "node": "Normalize Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - 401 Unauthorized",
             "type": "main",
             "index": 0
           }
@@ -477,7 +635,25 @@
       "main": [
         [
           {
+            "node": "Auth - Worker Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth - Worker Status": {
+      "main": [
+        [
+          {
             "node": "Build Status Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - 401 Unauthorized",
             "type": "main",
             "index": 0
           }

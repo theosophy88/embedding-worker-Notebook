@@ -36,9 +36,36 @@ notebooks, your own servers, or both at once - do the downloading in parallel.
 
 ---
 
+## Where the API key is checked
+
+There are **two** independent places n8n can check a key, and a mismatch in
+either one rejects the request. They answer differently, which is how you tell
+them apart:
+
+| Reply | Who rejected it | Where the key lives |
+|---|---|---|
+| `401` + `{"error":"unauthorized"}` | the workflow's three `Auth -` IF nodes | inside the workflow (and so inside any export of it) |
+| `403` + `Authorization data is wrong!` | n8n itself, before the workflow runs | a **Header Auth** credential on the Webhook nodes |
+
+This workflow ships with the IF-node check only, so it works on import with no
+credential setup. If you would rather keep the key in n8n's credential store —
+better hygiene, since exports then contain no key, and bad requests are rejected
+without spending a workflow execution — do this instead:
+
+1. On each of the three Webhook nodes: Authentication → **Header Auth**, with a
+   credential whose header name is `X-API-Key`
+2. Delete the three `Auth -` IF nodes and the `Respond - 401 Unauthorized` node,
+   wiring each Webhook straight to its first node
+   (`Claim Batch`, `Normalize Results`, `Build Status Row`)
+
+What you must **not** do is set up both and change only one of them: the
+credential will accept the new key and the IF node will still refuse it.
+
+---
+
 ## Endpoints
 
-All three require the header `X-API-Key: <your key>` and return `401` without it.
+All three require the header `X-API-Key: <your key>`.
 
 ### `POST /webhook/content-get-batch` — claim work
 
@@ -166,7 +193,9 @@ WHERE status = 'error';
 
 | Symptom | Cause |
 |---|---|
-| Worker prints `401 unauthorized` | `N8N_API_KEY` ≠ the value in the **Auth -** nodes |
+| `401 … rejected by the workflow's Auth nodes` | `N8N_API_KEY` ≠ the value in the three **Auth -** IF nodes |
+| `403 … rejected by n8n's webhook Header Auth credential` | `N8N_API_KEY` ≠ the Header Auth credential on the Webhook nodes |
+| Right key still rejected | a second copy of this workflow owns the webhook path - only one workflow can, and your edits went to the other one |
 | `GET error: Expecting value` | workflow is not **Active** (test mode only answers one call) |
 | Every batch returns 0 records | queue empty, or the old workflow is still active and draining it |
 | Many `bot_challenge` errors | those sites front their pages with Cloudflare/DataDome; the worker deliberately skips them instead of trying to break through |

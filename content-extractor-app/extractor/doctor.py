@@ -151,9 +151,11 @@ def check_n8n(settings) -> Check:
             return Check("n8n API", OK, f"{settings.status_url} accepted the heartbeat")
         return Check("n8n API", FAIL, client.last_error or "no response",
                      "Is the workflow Active in n8n? Check the URL and reverse proxy")
-    except N8nAuthError:
-        return Check("n8n API", FAIL, "401 unauthorized",
-                     "N8N_API_KEY does not match the key in the n8n Auth nodes")
+    except N8nAuthError as exc:
+        return Check("n8n API", FAIL, str(exc)[:220],
+                     "The key must match EVERY check in front of the workflow: the "
+                     "webhook's Header Auth credential (if you set one) and the three "
+                     "Auth nodes")
     except N8nError as exc:
         return Check("n8n API", FAIL, str(exc)[:200],
                      "Check N8N_BASE_URL and that the workflow is Active")

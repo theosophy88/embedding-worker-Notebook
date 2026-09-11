@@ -199,7 +199,8 @@ class Worker:
                 backoff = 5
             except N8nAuthError as exc:
                 self.stats.set_state("error", str(exc))
-                log.error("Authentication failed - fix N8N_API_KEY, then start again")
+                log.error("Authentication failed: %s", exc)
+                log.error("Fix the key, then press Start in the panel")
                 break
             except N8nError as exc:
                 self.stats.set_state("error", str(exc))

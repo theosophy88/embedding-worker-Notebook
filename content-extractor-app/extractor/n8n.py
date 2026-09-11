@@ -68,9 +68,22 @@ class N8nClient:
         for attempt in range(1, attempts + 1):
             try:
                 response = self._http().post(url, json=payload)
-                if response.status_code == 401:
+
+                # A key can be checked in two independent places, and they
+                # answer differently - so say which one said no. Neither is
+                # worth retrying.
+                if response.status_code in (401, 403):
                     self.reachable = True
-                    self.last_error = "401 unauthorized (check N8N_API_KEY)"
+                    body = (response.text or "").strip()[:120]
+                    if response.status_code == 403 or "Authorization data" in body:
+                        culprit = "n8n's webhook Header Auth credential"
+                    else:
+                        culprit = "the workflow's Auth nodes"
+                    self.last_error = (
+                        f"{response.status_code} from {url.rsplit('/', 1)[-1]}: "
+                        f"rejected by {culprit} - check N8N_API_KEY"
+                        + (f" (reply: {body})" if body else "")
+                    )
                     raise N8nAuthError(self.last_error)
                 if response.status_code == 404:
                     self.reachable = True
