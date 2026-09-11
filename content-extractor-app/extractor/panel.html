@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Extractor</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane:        #f9f9f7;
+    --surface:      #fcfcfb;
+    --ink:          #0b0b0b;
+    --ink-2:        #52514e;
+    --muted:        #898781;
+    --grid:         #e1e0d9;
+    --axis:         #c3c2b7;
+    --border:       rgba(11, 11, 11, 0.10);
+    --series-1:     #2a78d6;   /* extracted */
+    --series-2:     #eb6834;   /* failed */
+    --good:         #0ca30c;
+    --warning:      #fab219;
+    --serious:      #ec835a;
+    --critical:     #d03b3b;
+    --wash:         rgba(42, 120, 214, 0.08);
+    --radius:       10px;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --plane:    #0d0d0d;
+      --surface:  #1a1a19;
+      --ink:      #ffffff;
+      --ink-2:    #c3c2b7;
+      --muted:    #898781;
+      --grid:     #2c2c2a;
+      --axis:     #383835;
+      --border:   rgba(255, 255, 255, 0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --wash:     rgba(57, 135, 229, 0.14);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 16px 48px;
+    background: var(--plane); color: var(--ink);
+    font: 14px/1.5 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ---------------------------------------------------------- header */
+  header {
+    display: flex; flex-wrap: wrap; gap: 12px 18px;
+    align-items: center; margin-bottom: 18px;
+  }
+  h1 { font-size: 17px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  h1 span { color: var(--muted); font-weight: 400; }
+  .spacer { flex: 1 1 auto; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 4px 11px 4px 9px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 12.5px; color: var(--ink-2); white-space: nowrap;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.running { background: var(--good); }
+  .dot.idle    { background: var(--warning); }
+  .dot.paused  { background: var(--serious); }
+  .dot.error   { background: var(--critical); }
+  .dot.stopped { background: var(--muted); }
+
+  button {
+    font: inherit; font-size: 13px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 13px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: var(--wash); border-color: var(--series-1); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--series-1); }
+
+  /* ---------------------------------------------------------- cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px;
+  }
+  .card > h2 {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted);
+    margin: 0 0 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .card > h2 .spacer { flex: 1; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
+
+  /* ---------------------------------------------------------- tiles */
+  .tiles {
+    display: grid; gap: 12px; margin-bottom: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 13px 15px;
+  }
+  .tile .label {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .tile .value { font-size: 26px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+  .tile .sub { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+
+  /* ---------------------------------------------------------- chart */
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); }
+  .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+  #chart { width: 100%; height: 150px; display: block; }
+  .axis-row {
+    display: flex; justify-content: space-between;
+    font: 11px var(--sans); color: var(--muted); margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .empty { color: var(--muted); font-size: 13px; padding: 26px 0; text-align: center; }
+
+  /* ---------------------------------------------------------- bars */
+  .bars { display: flex; flex-direction: column; gap: 9px; }
+  .bar-row { display: grid; grid-template-columns: 130px 1fr 46px; gap: 10px; align-items: center; }
+  .bar-row .name {
+    font-size: 12.5px; color: var(--ink-2); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .bar-track {
+    display: block; background: var(--grid);
+    border-radius: 4px; height: 9px; overflow: hidden;
+  }
+  .bar-fill {
+    display: block; height: 100%; min-width: 3px;
+    border-radius: 4px; background: var(--series-1);
+  }
+  .bar-row .count {
+    font-size: 12.5px; text-align: right; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------------------------------------------------------- tables */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th {
+    text-align: left; font-weight: 500; color: var(--muted);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 0 8px 7px 0; border-bottom: 1px solid var(--grid);
+  }
+  td {
+    padding: 6px 8px 6px 0; border-bottom: 1px solid var(--grid);
+    color: var(--ink-2); vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+  td.url { max-width: 330px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scroll { max-height: 330px; overflow: auto; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; padding: 1px 7px; border-radius: 5px;
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .tag.ok   { color: var(--good); }
+  .tag.bad  { color: var(--critical); }
+  .tag.warn { color: var(--serious); }
+
+  /* ---------------------------------------------------------- forms */
+  .grid-form {
+    display: grid; gap: 12px 14px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    align-items: end;
+  }
+  label { font-size: 11.5px; color: var(--muted); display: block; margin-bottom: 5px; }
+  input[type=text], input[type=number], select {
+    font: inherit; font-size: 13px; width: 100%;
+    background: var(--plane); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 7px; padding: 6px 9px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--series-1); outline-offset: -1px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  pre {
+    margin: 0; font: 11.5px/1.6 var(--mono); color: var(--ink-2);
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 300px; overflow: auto;
+  }
+  .banner {
+    background: var(--critical); color: #fff; border-radius: 8px;
+    padding: 9px 14px; margin-bottom: 14px; font-size: 13px;
+  }
+  .banner[hidden] { display: none; }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 20; opacity: 0;
+    transition: opacity 0.1s; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    font-variant-numeric: tabular-nums;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner" id="banner" hidden></div>
+
+  <header>
+    <h1>Content Extractor <span id="node">—</span></h1>
+    <span class="pill"><i class="dot" id="state-dot"></i><span id="state-text">connecting…</span></span>
+    <span class="pill" id="uptime-pill">uptime —</span>
+    <div class="spacer"></div>
+    <button id="btn-pause">Pause</button>
+    <button id="btn-stop">Stop</button>
+    <button id="btn-start" class="primary">Start</button>
+    <button id="btn-doctor">Run checks</button>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>
+      Throughput · last 60 minutes
+      <span class="spacer"></span>
+      <span class="legend">
+        <span><i style="background:var(--series-1)"></i>Extracted</span>
+        <span><i style="background:var(--series-2)"></i>Failed</span>
+      </span>
+    </h2>
+    <svg id="chart" role="img" aria-label="URLs extracted and failed per minute"></svg>
+    <div class="axis-row"><span id="axis-left">—</span><span id="axis-mid"></span><span id="axis-right">now</span></div>
+    <div class="empty hidden" id="chart-empty">No activity in the last hour.</div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Failure reasons</h2>
+      <div class="bars" id="errors"></div>
+      <div class="empty hidden" id="errors-empty">No failures yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>
+        Domains
+        <span class="spacer"></span>
+        <button id="btn-cooloff">Clear cool-offs</button>
+      </h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Host</th><th class="num">OK</th><th class="num">Fail</th><th>State</th></tr></thead>
+          <tbody id="domains"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Test a single URL <span class="spacer"></span><span class="note" style="margin:0">nothing is written to the database</span></h2>
+    <div class="row">
+      <input type="text" id="test-url" placeholder="https://example.com/some-article" style="flex:1 1 320px">
+      <button id="btn-test" class="primary">Extract</button>
+    </div>
+    <pre id="test-out" class="hidden" style="margin-top:12px"></pre>
+  </div>
+
+  <div class="card">
+    <h2>Recent results</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>Time</th><th>ID</th><th>URL</th><th>Status</th>
+          <th class="num">Chars</th><th class="num">ms</th><th>Detail</th>
+        </tr></thead>
+        <tbody id="recent"></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="recent-empty">Nothing processed yet.</div>
+  </div>
+
+  <div class="card">
+    <h2>Live settings <span class="spacer"></span><span class="note" style="margin:0">runtime only — edit config.env to persist</span></h2>
+    <div class="grid-form">
+      <div><label for="s-threads">Threads</label><input type="number" id="s-threads" min="1" max="64"></div>
+      <div><label for="s-batch">Batch size</label><input type="number" id="s-batch" min="1" max="500"></div>
+      <div><label for="s-delay">Per-domain delay (s)</label><input type="number" id="s-delay" min="0" step="0.1"></div>
+      <div><label for="s-idle">Idle sleep (s)</label><input type="number" id="s-idle" min="1"></div>
+      <div><label for="s-min">Min content chars</label><input type="number" id="s-min" min="1"></div>
+      <div><label for="s-render">Browser fallback</label>
+        <select id="s-render"><option value="false">off</option><option value="true">on</option></select>
+      </div>
+      <div><button id="btn-apply" class="primary">Apply</button></div>
+    </div>
+    <div class="note" id="settings-note"></div>
+  </div>
+
+  <div class="card">
+    <h2>Log <span class="spacer"></span><button id="btn-refresh-log">Refresh</button></h2>
+    <pre id="log">loading…</pre>
+  </div>
+
+  <div class="card">
+    <h2>n8n API</h2>
+    <pre id="n8n">—</pre>
+  </div>
+
+</div>
+<div id="tooltip"></div>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => (n === null || n === undefined || Number.isNaN(n)) ? "—" : Number(n).toLocaleString();
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function duration(seconds) {
+  seconds = Math.max(0, Math.floor(seconds || 0));
+  const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600);
+  const m = Math.floor(seconds % 3600 / 60), s = seconds % 60;
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function banner(message) {
+  const el = $("banner");
+  if (!message) { el.hidden = true; return; }
+  el.hidden = false;
+  el.textContent = message;
+}
+
+async function api(path, options) {
+  const response = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, options));
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try { detail = (await response.json()).detail || detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  return response.json();
+}
+
+/* ------------------------------------------------------------ tiles */
+function renderTiles(data) {
+  const t = data.totals, r = data.rates, c = data.current;
+  const tiles = [
+    { label: "Extracted", value: fmt(t.extracted), sub: `${fmt(t.avg_chars)} chars avg` },
+    { label: "Failed", value: fmt(t.failed), sub: `${fmt(t.save_failures)} save failures` },
+    { label: "Success rate", value: t.success_rate + "%", sub: `${fmt(t.processed)} processed` },
+    { label: "Throughput", value: fmt(r.per_minute), sub: `URLs/min · ${fmt(r.extracted_per_hour)}/h` },
+    { label: "In flight", value: fmt(c.in_flight), sub: `batch ${fmt(c.batch_done)}/${fmt(c.batch_total)}` },
+    { label: "Claimed", value: fmt(t.claimed), sub: `${fmt(t.cycles)} cycles` },
+  ];
+  $("tiles").innerHTML = tiles.map((tile) => `
+    <div class="tile">
+      <div class="label">${esc(tile.label)}</div>
+      <div class="value">${esc(tile.value)}</div>
+      <div class="sub">${esc(tile.sub)}</div>
+    </div>`).join("");
+}
+
+/* ------------------------------------------------------------ chart
+   Stacked bars, one per minute: extracted on the baseline, failed above,
+   with a 2px surface gap between the two segments.                     */
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function renderChart(series) {
+  const svg = $("chart");
+  const total = series.reduce((sum, point) => sum + point.ok + point.fail, 0);
+  $("chart-empty").classList.toggle("hidden", total > 0);
+  svg.classList.toggle("hidden", total === 0);
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  if (total === 0) return;
+
+  const width = svg.clientWidth || 900, height = 150;
+  const padTop = 14, padBottom = 4, gap = 2;
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+  const peak = Math.max(...series.map((p) => p.ok + p.fail), 1);
+  const plot = height - padTop - padBottom;
+  const slot = width / series.length;
+  const barWidth = Math.max(Math.min(slot - 2, 14), 3);
+
+  // recessive gridline at the peak, so the scale is readable
+  const line = document.createElementNS(SVG_NS, "line");
+  line.setAttribute("x1", 0); line.setAttribute("x2", width);
+  line.setAttribute("y1", padTop); line.setAttribute("y2", padTop);
+  line.setAttribute("stroke", "var(--grid)"); line.setAttribute("stroke-width", 1);
+  svg.appendChild(line);
+
+  const peakLabel = document.createElementNS(SVG_NS, "text");
+  peakLabel.setAttribute("x", 2); peakLabel.setAttribute("y", padTop - 4);
+  peakLabel.setAttribute("fill", "var(--muted)"); peakLabel.setAttribute("font-size", "11");
+  peakLabel.textContent = `peak ${peak}/min`;
+  svg.appendChild(peakLabel);
+
+  series.forEach((point, index) => {
+    const x = index * slot + (slot - barWidth) / 2;
+    const okHeight = Math.round(point.ok / peak * plot);
+    const failHeight = Math.round(point.fail / peak * plot);
+    const group = document.createElementNS(SVG_NS, "g");
+    group.setAttribute("tabindex", "-1");
+
+    // invisible hit target: easier to hover than a 1px bar
+    const hit = document.createElementNS(SVG_NS, "rect");
+    hit.setAttribute("x", index * slot); hit.setAttribute("y", 0);
+    hit.setAttribute("width", slot); hit.setAttribute("height", height);
+    hit.setAttribute("fill", "transparent");
+    group.appendChild(hit);
+
+    let cursor = height - padBottom;
+    if (okHeight > 0) {
+      const bar = document.createElementNS(SVG_NS, "rect");
+      bar.setAttribute("x", x); bar.setAttribute("width", barWidth);
+      bar.setAttribute("y", cursor - okHeight); bar.setAttribute("height", okHeight);
+      bar.setAttribute("rx", 2); bar.setAttribute("fill", "var(--series-1)");
+      group.appendChild(bar);
+      cursor -= okHeight + gap;
+    }
+    if (failHeight > 0) {
+      const bar = document.createElementNS(SVG_NS, "rect");
+      bar.setAttribute("x", x); bar.setAttribute("width", barWidth);
+      bar.setAttribute("y", cursor - failHeight); bar.setAttribute("height", failHeight);
+      bar.setAttribute("rx", 2); bar.setAttribute("fill", "var(--series-2)");
+      group.appendChild(bar);
+    }
+
+    const title = `${point.minute} — ${point.ok} extracted, ${point.fail} failed`;
+    group.setAttribute("aria-label", title);
+    group.addEventListener("mousemove", (event) => showTooltip(event, title));
+    group.addEventListener("mouseleave", hideTooltip);
+    svg.appendChild(group);
+  });
+
+  $("axis-left").textContent = series[0].minute;
+  $("axis-mid").textContent = series[Math.floor(series.length / 2)].minute;
+}
+
+function showTooltip(event, text) {
+  const tip = $("tooltip");
+  tip.textContent = text;
+  tip.style.opacity = "1";
+  const offset = 14;
+  const left = Math.min(event.clientX + offset, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = left + "px";
+  tip.style.top = (event.clientY - tip.offsetHeight - offset / 2) + "px";
+}
+function hideTooltip() { $("tooltip").style.opacity = "0"; }
+
+/* ------------------------------------------------------------ errors */
+function renderErrors(errors) {
+  $("errors-empty").classList.toggle("hidden", errors.length > 0);
+  const peak = Math.max(...errors.map((e) => e.count), 1);
+  $("errors").innerHTML = errors.map((error) => `
+    <div class="bar-row">
+      <span class="name" title="${esc(error.reason)}">${esc(error.reason)}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${(error.count / peak * 100).toFixed(1)}%"></span></span>
+      <span class="count">${fmt(error.count)}</span>
+    </div>`).join("");
+}
+
+/* ------------------------------------------------------------ tables */
+function renderDomains(domains) {
+  $("domains").innerHTML = domains.map((domain) => {
+    const state = domain.cooling_seconds > 0
+      ? `<span class="tag warn">cooling ${domain.cooling_seconds}s</span>`
+      : (domain.blocked ? `<span class="tag warn">${domain.blocked} blocked</span>` : `<span class="tag ok">open</span>`);
+    return `<tr>
+      <td class="url" title="${esc(domain.host)}">${esc(domain.host)}</td>
+      <td class="num">${fmt(domain.ok)}</td>
+      <td class="num">${fmt(domain.failed)}</td>
+      <td>${state}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="4" style="color:var(--muted)">No requests yet.</td></tr>`;
+}
+
+function renderRecent(recent) {
+  $("recent-empty").classList.toggle("hidden", recent.length > 0);
+  $("recent").innerHTML = recent.map((row) => {
+    const ok = row.status === "content";
+    const tag = ok ? `<span class="tag ok">content</span>` : `<span class="tag bad">error</span>`;
+    const detail = ok ? `${esc(row.method || "")}${row.via === "render" ? " · rendered" : ""}`
+                      : esc(row.error || "");
+    return `<tr>
+      <td>${esc((row.at || "").slice(11, 19))}</td>
+      <td class="num">${fmt(row.id)}</td>
+      <td class="url" title="${esc(row.url)}">${esc(row.url)}</td>
+      <td>${tag}</td>
+      <td class="num">${row.chars ? fmt(row.chars) : "—"}</td>
+      <td class="num">${fmt(row.elapsed_ms)}</td>
+      <td>${detail}</td>
+    </tr>`;
+  }).join("");
+}
+
+/* ------------------------------------------------------------ state */
+const SETTING_INPUTS = ["s-threads", "s-batch", "s-delay", "s-idle", "s-min", "s-render"];
+let settingsTouched = false;
+
+function renderSettings(settings) {
+  if (settingsTouched) return;   // do not fight the person typing
+  $("s-threads").value = settings.threads;
+  $("s-batch").value = settings.batch_size;
+  $("s-delay").value = settings.per_domain_delay;
+  $("s-idle").value = settings.idle_sleep_seconds;
+  $("s-min").value = settings.min_content_chars;
+  $("s-render").value = String(settings.render_fallback);
+}
+
+function renderHeader(data) {
+  const state = data.state || "unknown";
+  const dotClass = ["running", "idle", "paused", "error", "stopped"].includes(state) ? state : "stopped";
+  $("state-dot").className = "dot " + dotClass;
+  $("state-text").textContent = state + (data.state_detail ? " — " + data.state_detail : "");
+  $("node").textContent = data.node_name ? `· ${data.node_name} · v${data.version}` : "";
+  $("uptime-pill").textContent = "uptime " + duration(data.uptime_seconds);
+
+  const running = data.worker.running, paused = data.worker.paused;
+  $("btn-start").disabled = running;
+  $("btn-stop").disabled = !running;
+  $("btn-pause").disabled = !running;
+  $("btn-pause").textContent = paused ? "Resume" : "Pause";
+  $("btn-pause").dataset.action = paused ? "resume" : "pause";
+}
+
+function renderN8n(data) {
+  const n8n = data.n8n, renderer = data.renderer;
+  $("n8n").textContent = [
+    `endpoint     : ${n8n.base_url}`,
+    `reachable    : ${n8n.reachable === null ? "not contacted yet" : n8n.reachable}`,
+    `last claim   : ${n8n.last_claim_at || "—"}`,
+    `last save    : ${n8n.last_save_at || "—"}`,
+    `last heartbeat: ${n8n.last_heartbeat_at || "—"}`,
+    `last error   : ${n8n.last_error || "none"}`,
+    `renderer     : ${renderer.enabled ? renderer.status : "disabled"}` +
+      (renderer.enabled ? ` (${renderer.rendered} rendered, ${renderer.failed} failed)` : ""),
+    renderer.last_error ? `renderer err : ${renderer.last_error}` : "",
+  ].filter(Boolean).join("\n");
+}
+
+async function poll() {
+  try {
+    const data = await api("/api/stats");
+    banner("");
+    renderHeader(data);
+    renderTiles(data);
+    renderChart(data.throughput);
+    renderErrors(data.errors);
+    renderDomains(data.domains);
+    renderRecent(data.recent);
+    renderSettings(data.settings);
+    renderN8n(data);
+  } catch (error) {
+    banner("Panel cannot reach the worker: " + error.message);
+  }
+}
+
+async function refreshLog() {
+  try {
+    const data = await api("/api/logs?n=200");
+    $("log").textContent = data.lines
+      .map((line) => `${line.at.slice(11, 19)} ${line.level.padEnd(7)} ${line.message}`)
+      .join("\n") || "(empty)";
+  } catch (error) {
+    $("log").textContent = "Could not load the log: " + error.message;
+  }
+}
+
+/* ------------------------------------------------------------ actions */
+async function control(action) {
+  try {
+    const result = await api("/api/control", { method: "POST", body: JSON.stringify({ action }) });
+    banner(result.ok ? "" : result.message);
+    await poll();
+    await refreshLog();
+  } catch (error) {
+    banner(error.message);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  SETTING_INPUTS.forEach((id) => {
+    $(id).addEventListener("input", () => { settingsTouched = true; });
+  });
+
+  $("btn-start").addEventListener("click", () => control("start"));
+  $("btn-stop").addEventListener("click", () => control("stop"));
+  $("btn-pause").addEventListener("click", (event) => control(event.target.dataset.action || "pause"));
+  $("btn-cooloff").addEventListener("click", () => control("reset_cooloffs"));
+  $("btn-refresh-log").addEventListener("click", refreshLog);
+
+  $("btn-apply").addEventListener("click", async () => {
+    const body = {
+      threads: Number($("s-threads").value),
+      batch_size: Number($("s-batch").value),
+      per_domain_delay: Number($("s-delay").value),
+      idle_sleep_seconds: Number($("s-idle").value),
+      min_content_chars: Number($("s-min").value),
+      render_fallback: $("s-render").value === "true",
+    };
+    try {
+      const result = await api("/api/settings", { method: "POST", body: JSON.stringify(body) });
+      settingsTouched = false;
+      $("settings-note").textContent = result.rejected.length
+        ? "Rejected: " + result.rejected.join("; ")
+        : "Applied: " + Object.keys(result.applied).join(", ") + " — " + result.note;
+    } catch (error) {
+      $("settings-note").textContent = error.message;
+    }
+  });
+
+  $("btn-test").addEventListener("click", async () => {
+    const url = $("test-url").value.trim();
+    if (!url) return;
+    const out = $("test-out");
+    out.classList.remove("hidden");
+    out.textContent = "Fetching…";
+    $("btn-test").disabled = true;
+    try {
+      const result = await api("/api/test", { method: "POST", body: JSON.stringify({ url }) });
+      out.textContent = [
+        `status   : ${result.status}`,
+        `http     : ${result.http_status ?? "—"}`,
+        `via      : ${result.via || "—"}   method: ${result.method || "—"}`,
+        `chars    : ${result.chars}`,
+        `elapsed  : ${result.elapsed_ms} ms`,
+        `error    : ${result.error || "none"}`,
+        "",
+        result.preview || "(no text extracted)",
+      ].join("\n");
+    } catch (error) {
+      out.textContent = "Request failed: " + error.message;
+    } finally {
+      $("btn-test").disabled = false;
+    }
+  });
+
+  $("btn-doctor").addEventListener("click", async () => {
+    const out = $("log");
+    out.textContent = "Running checks…";
+    try {
+      const data = await api("/api/doctor");
+      out.textContent = data.checks.map((check) => {
+        const mark = check.status === "ok" ? "OK  " : check.status === "warn" ? "WARN" : "FAIL";
+        return `${mark}  ${check.name.padEnd(22)} ${check.detail}` +
+               (check.fix && check.status !== "ok" ? `\n      -> ${check.fix}` : "");
+      }).join("\n");
+    } catch (error) {
+      out.textContent = "Checks failed to run: " + error.message;
+    }
+  });
+
+  poll();
+  refreshLog();
+  setInterval(poll, 2000);
+  setInterval(refreshLog, 15000);
+  window.addEventListener("resize", () => poll());
+});
+</script>
+</body>
+</html>

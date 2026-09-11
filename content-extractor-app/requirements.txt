@@ -1,0 +1,10 @@
+# Core runtime. Installed into /opt/content-extractor/venv by install.sh.
+httpx[http2]>=0.27,<0.29
+trafilatura>=1.12,<3
+fastapi>=0.110,<1
+uvicorn>=0.29,<1
+psutil>=5.9
+
+# Optional headless-browser fallback for JavaScript-only pages.
+# Install with:  pip install playwright && playwright install --with-deps chromium
+# (install.sh --with-browser does this for you)

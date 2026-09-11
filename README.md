@@ -7,6 +7,29 @@ This notebook fetches unembedded news articles from your PostgreSQL database
 
 ---
 
+## Notebooks in this repo
+
+| Notebook | Does | Needs GPU |
+|---|---|---|
+| [`news-embedding-worker.ipynb`](news-embedding-worker.ipynb) | embeds article text into 4096-dim vectors | ✅ T4 x2 |
+| [`content-extractor.ipynb`](content-extractor.ipynb) | downloads news URLs and extracts the article body | ❌ CPU only |
+| [`download-model.ipynb`](download-model.ipynb) | one-time model download → Kaggle dataset | ❌ |
+
+Plus a self-hosted version of the content extractor for your own Linux server:
+[`content-extractor-app/`](content-extractor-app/) — one-command install, systemd
+service, web panel. Use it when Kaggle's IP ranges get blocked by news sites
+(they usually are); it can also render JavaScript-only pages in a real browser.
+
+Both extractors talk to the same n8n workflow —
+see [`n8n/CONTENT-EXTRACTOR-API.md`](n8n/CONTENT-EXTRACTOR-API.md) for the API
+and setup. Every worker is safe to run in many copies at once: the n8n API
+hands each `NODE_NAME` a different slice of the queue.
+
+The two feed each other — the extractor fills `news_content`, the embedder turns
+it into vectors — so run the extractor first (or both at the same time).
+
+---
+
 ## What You Need Before Starting
 
 | Requirement | Details |

@@ -1,0 +1,45 @@
+[Unit]
+Description=News content extractor worker (n8n Content Extractor API)
+Documentation=https://github.com/theosophy88/embedding-worker-Notebook
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__USER__
+WorkingDirectory=__INSTALL_DIR__/app
+EnvironmentFile=__CONFIG_FILE__
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PLAYWRIGHT_BROWSERS_PATH=__INSTALL_DIR__/browsers
+ExecStart=__INSTALL_DIR__/venv/bin/python -m extractor run
+
+# Restart forever, but back off so a broken config does not spin the CPU.
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=0
+
+# Let the worker finish the batch it already claimed before it is killed.
+KillSignal=SIGTERM
+TimeoutStopSec=120
+
+# --- hardening -------------------------------------------------------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+ReadWritePaths=__INSTALL_DIR__
+
+# Chromium needs a bigger file-descriptor budget than the default.
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

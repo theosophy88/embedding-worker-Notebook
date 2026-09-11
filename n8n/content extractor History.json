@@ -1,0 +1,504 @@
+{
+  "name": "content extractor History",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "news",
+          "mode": "list",
+          "cachedResultName": "news"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Execute a SQL query1').item.json.id }}",
+            "description": "={{ $json.text }}",
+            "status": "content"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "rss_id",
+              "displayName": "rss_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "vector",
+              "displayName": "vector",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "theme_ids",
+              "displayName": "theme_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "array",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -784,
+        -144
+      ],
+      "id": "2e1ae222-733c-4c39-bb26-1baaf15499a1",
+      "name": "Update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "news",
+          "mode": "list",
+          "cachedResultName": "news"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Execute a SQL query1').item.json.id }}",
+            "status": "error"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "rss_id",
+              "displayName": "rss_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "theme_ids",
+              "displayName": "theme_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "array",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        336,
+        240
+      ],
+      "id": "15cce093-8135-4ba6-a744-323134b0030c",
+      "name": "Update error rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 50
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -784,
+        80
+      ],
+      "id": "fa24e8bd-0abb-4e98-b055-c3f1960bc210",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH c AS (\n    INSERT INTO news_content (news_id, description)\n    VALUES ({{ $('Execute a SQL query1').item.json.id }}, $1)\n    ON CONFLICT (news_id) DO UPDATE SET description = EXCLUDED.description\n    RETURNING news_id\n)\nUPDATE news\nSET status = 'content'\nFROM c\nWHERE news.id = c.news_id;",
+        "options": {
+          "queryReplacement": "=[\"{{ $json.text }}\"]"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        336,
+        48
+      ],
+      "id": "d15bd5b4-ca7d-44fb-90c9-110d4c43e828",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        240
+      ],
+      "id": "ec214a37-7c17-4d1e-9370-a459ed135494",
+      "name": "Wait",
+      "webhookId": "f618ff9e-9059-466b-bfe3-c201360d59cd",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 35000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -112,
+        80
+      ],
+      "id": "e0b54258-7119-492f-a5d0-c17dc92bb607",
+      "name": "HTTP Request",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const html = $json.data || $json.body || '';\n\n// ─────────────────────────────────────────────────────────────\n// Bot-challenge / interstitial detection\n// ─────────────────────────────────────────────────────────────\n\n// High-confidence markers in RAW html (these live inside <script>/<meta>,\n// so this MUST run before script stripping)\nconst CHALLENGE_HTML_MARKERS = [\n  '/cdn-cgi/challenge-platform',\n  'cf-browser-verification',\n  '__cf_chl',\n  'cf_chl_opt',\n  '_incapsula_resource',\n  'distil_r_captcha',\n  'px-captcha',\n  '/captcha/',\n  'g-recaptcha',\n  'hcaptcha.com',\n  'datadome',\n  'perimeterx',\n  'akamai bot manager',\n];\n\n// Phrases that appear in the visible text of challenge / block pages\nconst CHALLENGE_TEXT_PHRASES = [\n  'client challenge',\n  'javascript is disabled in your browser',\n  'enable javascript and cookies to continue',\n  'please enable javascript',\n  'please turn on javascript',\n  'javascript is required',\n  'requires javascript to be enabled',\n  'checking your browser before accessing',\n  'verify you are human',\n  'verifying you are human',\n  'are you a robot',\n  'i am not a robot',\n  'complete the security check',\n  'security check to access',\n  'attention required cloudflare',\n  'ddos protection by cloudflare',\n  'access to this page has been denied',\n  'access denied you don t have permission',\n  'your request has been blocked',\n  'unusual traffic from your computer network',\n  'this site requires cookies',\n  'ray id',\n  '403 forbidden',\n  'just a moment',\n];\n\n// Normalise text the same way for both raw + final checks\nfunction normalise(text) {\n  return (text || '')\n    .toLowerCase()\n    .replace(/&#39;/g, \"'\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim();\n}\n\nfunction findChallengePhrase(normalisedText) {\n  return CHALLENGE_TEXT_PHRASES.find(p => normalisedText.includes(p)) || null;\n}\n\n// Stage 1 — raw HTML markers (run FIRST, before scripts are stripped)\nconst rawLower = html.toLowerCase();\nconst htmlMarker = CHALLENGE_HTML_MARKERS.find(m => rawLower.includes(m));\nif (htmlMarker) {\n  throw new Error(`Bot challenge page detected (marker: ${htmlMarker}) — skipping`);\n}\n\n// <title>Just a moment...</title> / <title>Client Challenge</title>\nconst titleMatch = html.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i);\nif (titleMatch) {\n  const t = normalise(titleMatch[1]);\n  const titleHit = findChallengePhrase(t);\n  if (titleHit) {\n    throw new Error(`Bot challenge page detected (title: \"${titleHit}\") — skipping`);\n  }\n}\n\n// ─────────────────────────────────────────────────────────────\n// Tag-spam detection (unchanged)\n// ─────────────────────────────────────────────────────────────\nfunction isTagSpam(text) {\n  const t = (text || '').trim();\n  return /([A-Z0-9_]+;){5,}/.test(t);\n}\n\n// 1. Remove unwanted sections\nlet cleaned = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<noscript[\\s\\S]*?<\\/noscript>/gi, '')\n  .replace(/<nav[\\s\\S]*?<\\/nav>/gi, '')\n  .replace(/<footer[\\s\\S]*?<\\/footer>/gi, '')\n  .replace(/<header[\\s\\S]*?<\\/header>/gi, '')\n  .replace(/<aside[\\s\\S]*?<\\/aside>/gi, '');\n\nfunction extractText(h) {\n  return h\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n}\n\n// 2. Prefer article/main\nconst articleMatch = cleaned.match(/<article[\\s\\S]*?<\\/article>/i);\nconst mainMatch = cleaned.match(/<main[\\s\\S]*?<\\/main>/i);\n\nlet articleText = extractText(articleMatch?.[0] || '');\nlet mainText = extractText(mainMatch?.[0] || '');\n\nif (isTagSpam(articleText)) articleText = '';\nif (isTagSpam(mainText)) mainText = '';\n\nlet content;\n\nif (articleText.length > 500) {\n  content = articleText;\n} else if (mainText.length > 500) {\n  content = mainText;\n} else {\n  const fullText = extractText(cleaned);\n  if (isTagSpam(fullText)) {\n    throw new Error('Tag-spam content detected — skipping');\n  }\n  content = fullText;\n}\n\n// Stage 2 — visible-text challenge check (before punctuation is destroyed)\nconst normalisedContent = normalise(content);\nconst textHit = findChallengePhrase(normalisedContent);\nif (textHit) {\n  // Challenge pages are short. A real article that merely *mentions* one of\n  // these phrases will be long, so only reject when the page is also thin.\n  if (normalisedContent.length < 1500) {\n    throw new Error(`Bot challenge page detected (text: \"${textHit}\") — skipping`);\n  }\n}\n\n// 3. Decode HTML entities\ncontent = content\n  .replace(/&#39;/g, \"'\")\n  .replace(/&quot;/g, '\"')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&bull;/g, '•')\n  .replace(/&[a-z]+;/gi, ' ');\n\n// 4. Remove CSS/Tailwind garbage\ncontent = content.replace(/\\[[^\\]]*\\]:[^\\s]+/g, '');\ncontent = content.replace(/:[a-zA-Z-]+\\b/g, '');\n\n// 5. Keep only letters, numbers, spaces, currency symbols\ncontent = content.replace(/[^a-zA-Z0-9\\s£$€¥¢₺₹₩₪₫₭₮₯₱₲₳₴₵₶₷₸₹₺₻₼₽₾₿&]/g, ' ');\n\n// 6. Clean whitespace\ncontent = content.replace(/\\s{2,}/g, ' ').trim();\n\n// 7. Slice for DB safety\ncontent = content.slice(0, 10000);\n\n// 8. Reject if too short\nif (content.length < 150) {\n  throw new Error(`Content too short (${content.length} chars) — skipping`);\n}\n\nreturn { json: { text: content } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        64
+      ],
+      "id": "42fb8384-106f-4290-9ab6-22caf72b7488",
+      "name": "cleaner code1",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Run It"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -304,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "84332a65-87b1-43ec-83a5-bc99e9e44258",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.news n\nSET status = 'fetching'\nFROM (\n  SELECT id\n  FROM public.news\n  WHERE url IS NOT NULL\n    AND (status = 'pending' OR status IS NULL)\n  ORDER BY rss_id, date\n  LIMIT 100\n  FOR UPDATE SKIP LOCKED\n) AS c\nWHERE n.id = c.id\nRETURNING n.id, n.rss_id, n.title, n.date, n.url;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -560,
+        80
+      ],
+      "id": "5a03b120-ac65-4025-a9e6-96d8af437c25",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Update error rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "cleaner code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cleaner code1": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update error rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 180,
+    "availableInMCP": false,
+    "timeSavedPerExecution": 0
+  },
+  "versionId": "dbcb233e-4c60-437f-a3c3-8bdc2a682bac",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b402ccc565fd03ac760bdcb0ca28086f9d1b5610890b16ceb1c84f9e4242cc5"
+  },
+  "nodeGroups": [],
+  "id": "txkwK3MHe37jeDBB",
+  "tags": []
+}

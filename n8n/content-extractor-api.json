@@ -1,0 +1,701 @@
+{
+  "name": "Content Extractor API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-get-batch",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        -80
+      ],
+      "id": "8a1f0f08-83eb-435a-a41c-5412170f3c65",
+      "name": "Webhook - Get Batch",
+      "webhookId": "0d0c3f28-f500-465d-b607-31cf578b3c6d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2799383-d0b6-452d-ba4c-b9a13530fb3a",
+              "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
+              "rightValue": "mer30kehasti",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        -80
+      ],
+      "id": "8280ebc6-458d-448b-af0c-bc9cfbea9232",
+      "name": "Auth - Get Batch"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Atomically claim a batch of un-extracted news URLs for ONE worker.\n-- FOR UPDATE SKIP LOCKED lets unlimited workers claim in parallel\n-- without ever handing the same row to two of them.\nUPDATE public.news n\nSET status     = 'fetching',\n    node_name  = $1,\n    claimed_at = now()\nFROM (\n  SELECT id\n  FROM public.news\n  WHERE url IS NOT NULL\n    AND (status = 'pending' OR status IS NULL)\n  ORDER BY rss_id, date\n  LIMIT LEAST(GREATEST(COALESCE($2::int, 25), 1), 500)\n  FOR UPDATE SKIP LOCKED\n) AS c\nWHERE n.id = c.id\nRETURNING n.id, n.rss_id, n.title, n.date, n.url;",
+        "options": {
+          "queryReplacement": "=[\"{{ $json.body.node_name || 'unknown-worker' }}\", {{ $json.body.batch_size || 25 }}]"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -620,
+        -160
+      ],
+      "id": "6e272640-49f1-4cd3-9585-892348d23d09",
+      "name": "Claim Batch",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "$1 = node_name, $2 = batch_size"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn the claimed rows into one JSON response for the worker.\n// The Postgres node has alwaysOutputData ON, so when the queue is empty we\n// still get one empty item here and must answer {\"records\": []} - never hang.\nconst records = $input.all()\n  .map(item => item.json)\n  .filter(r => r && r.id !== undefined && r.id !== null)\n  .map(r => ({\n    id: r.id,\n    rss_id: r.rss_id,\n    title: r.title,\n    date: r.date,\n    url: r.url,\n  }));\n\nreturn [{ json: { records, count: records.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        -160
+      ],
+      "id": "7690520d-abcd-4ede-9da7-c8727bdc422f",
+      "name": "Build Batch Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -140,
+        -160
+      ],
+      "id": "d87f2c2d-4af3-4a5c-a535-25d7a0e845f8",
+      "name": "Respond - Batch"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-save",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        200
+      ],
+      "id": "bc7c3655-a1d6-403e-b350-ace9405d6850",
+      "name": "Webhook - Save Content",
+      "webhookId": "06f20da0-4ce4-48df-8190-32469c659211"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e335d564-16f0-45da-b7c0-e838546d83b7",
+              "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
+              "rightValue": "mer30kehasti",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        200
+      ],
+      "id": "12301487-3222-4027-8e35-2ea2f638d094",
+      "name": "Auth - Save Content"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate + normalise what the worker posted back, so a buggy client can\n// never push junk into the database.\nconst body = $input.first().json.body || {};\n\nconst MAX_CHARS = 10000;   // keep in sync with MAX_CONTENT_CHARS in the notebook\nconst MIN_CHARS = 150;     // keep in sync with MIN_CONTENT_CHARS in the notebook\n\nconst nodeName = String(body.node_name || 'unknown-worker').slice(0, 100);\nconst raw = Array.isArray(body.results) ? body.results : [];\n\nconst results = [];\nconst seen = new Set();\n\nfor (const r of raw) {\n  const id = Number(r && r.id);\n  if (!Number.isFinite(id) || seen.has(id)) continue;\n  seen.add(id);\n\n  // accept both {content: ...} and {text: ...}\n  let content = typeof r.content === 'string'\n    ? r.content\n    : (typeof r.text === 'string' ? r.text : '');\n\n  // Postgres text columns cannot hold NUL bytes\n  content = content.replace(/\\u0000/g, '').trim().slice(0, MAX_CHARS);\n\n  const ok = r.status === 'content' && content.length >= MIN_CHARS;\n\n  results.push({\n    id,\n    status: ok ? 'content' : 'error',\n    content: ok ? content : null,\n    error: ok ? null : String(r.error || `too short (${content.length} chars)`).slice(0, 300),\n  });\n}\n\nreturn [{ json: { node_name: nodeName, results, received: raw.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        140
+      ],
+      "id": "afafb890-c1af-4b43-b652-704a72cdab0e",
+      "name": "Normalize Results"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Save one whole worker batch in a single round-trip.\n-- $1 = JSON array of {id, status, content}   $2 = node_name\nWITH payload AS (\n  SELECT *\n  FROM jsonb_to_recordset($1::jsonb)\n    AS x(id bigint, status text, content text)\n),\nok AS (\n  INSERT INTO public.news_content (news_id, description, updated_at)\n  SELECT p.id, p.content, now()\n  FROM payload p\n  WHERE p.status = 'content'\n    AND p.content IS NOT NULL\n  ON CONFLICT (news_id) DO UPDATE\n    SET description = EXCLUDED.description,\n        updated_at  = now()\n  RETURNING news_id\n),\nmark_ok AS (\n  UPDATE public.news n\n  SET status = 'content', node_name = $2, claimed_at = NULL\n  FROM ok\n  WHERE n.id = ok.news_id\n  RETURNING n.id\n),\nmark_err AS (\n  UPDATE public.news n\n  SET status = 'error', node_name = $2, claimed_at = NULL\n  FROM payload p\n  WHERE n.id = p.id\n    AND p.status <> 'content'\n  RETURNING n.id\n)\nSELECT (SELECT count(*) FROM mark_ok)  AS saved,\n       (SELECT count(*) FROM mark_err) AS failed;",
+        "options": {
+          "queryReplacement": "=[\"{{ JSON.stringify($json.results) }}\", \"{{ $json.node_name }}\"]"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -380,
+        140
+      ],
+      "id": "6f3e98d4-0ddf-4b21-9d4e-dd768b24ce7e",
+      "name": "Save Content Batch",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "$1 = results JSON array, $2 = node_name"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, saved: Number($json.saved || 0), failed: Number($json.failed || 0) }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -140,
+        140
+      ],
+      "id": "0d7320bc-a132-4138-a297-65fb153b94c7",
+      "name": "Respond - Saved"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        480
+      ],
+      "id": "36bf88ac-664b-44f0-8fce-99fcab43b136",
+      "name": "Webhook - Worker Status",
+      "webhookId": "7af56e25-eef7-4726-9fa2-7263e1c04254"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55ab3b4e-bc75-4425-925b-40bde9a09ba8",
+              "leftValue": "={{ $json.headers['x-api-key'] || '' }}",
+              "rightValue": "mer30kehasti",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        480
+      ],
+      "id": "0f93a5c8-bbed-4c33-a1fd-01e8bb3d20a2",
+      "name": "Auth - Worker Status"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flatten the heartbeat into the 4 columns worker_status needs.\nconst body = $input.first().json.body || {};\n\nreturn [{\n  json: {\n    node_name:   String(body.node_name || 'unknown-worker').slice(0, 100),\n    worker_type: String(body.worker_type || 'content-extractor').slice(0, 50),\n    status:      String(body.status || 'running').slice(0, 30),\n    payload:     JSON.stringify(body),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        420
+      ],
+      "id": "5f57f8ba-595f-4350-adeb-ad30e4a888f2",
+      "name": "Build Status Row"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Upsert the worker heartbeat. The full payload is kept as jsonb so the\n-- notebook can add new telemetry fields without a schema change.\nINSERT INTO public.worker_status (node_name, worker_type, status, payload, updated_at)\nVALUES ($1, $2, $3, $4::jsonb, now())\nON CONFLICT (node_name) DO UPDATE\nSET worker_type = EXCLUDED.worker_type,\n    status      = EXCLUDED.status,\n    payload     = EXCLUDED.payload,\n    updated_at  = now()\nRETURNING node_name, status, updated_at;",
+        "options": {
+          "queryReplacement": "=[\"{{ $json.node_name }}\", \"{{ $json.worker_type }}\", \"{{ $json.status }}\", \"{{ $json.payload }}\"]"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -380,
+        420
+      ],
+      "id": "9e6c8e8f-efcc-4d2b-888b-6fe50f7ecc94",
+      "name": "Upsert Worker Status",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "$1 node_name, $2 worker_type, $3 status, $4 payload json"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -140,
+        420
+      ],
+      "id": "0e10d027-49e2-4a0e-8fa0-75c41f8d1c07",
+      "name": "Respond - Status OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -620,
+        680
+      ],
+      "id": "c608b9e6-71f2-4f97-9f62-8ab1773d07b4",
+      "name": "Respond - 401 Unauthorized"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1120,
+        860
+      ],
+      "id": "6bc9c6df-cc90-488e-b718-46acb276d475",
+      "name": "Every 5 min"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- A worker that died (Kaggle session killed, laptop closed) leaves rows\n-- stuck in 'fetching'. Put them back in the queue so another worker takes\n-- them. Raise the interval if you run a very large BATCH_SIZE.\nUPDATE public.news\nSET status = 'pending', node_name = NULL, claimed_at = NULL\nWHERE status = 'fetching'\n  AND claimed_at IS NOT NULL\n  AND claimed_at < now() - interval '20 minutes'\nRETURNING id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -880,
+        860
+      ],
+      "id": "c1441c3d-2414-4069-a402-b039fb6449b1",
+      "name": "Reclaim Stale Claims",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        1040
+      ],
+      "id": "d42d904a-9741-4ba7-80b9-f24efc7d6f46",
+      "name": "Run setup once"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- ============================================================\n-- Run this ONCE (click \"Test step\" on this node) before using the API.\n-- Everything is IF NOT EXISTS / ADD COLUMN IF NOT EXISTS, so it is safe\n-- to run again on an existing database.\n-- ============================================================\n\n-- Lets the reclaim job find claims abandoned by a crashed worker.\nALTER TABLE public.news ADD COLUMN IF NOT EXISTS claimed_at timestamptz;\n\n-- Keeps the claim query fast as the queue grows.\nCREATE INDEX IF NOT EXISTS news_claim_idx\n  ON public.news (rss_id, date)\n  WHERE url IS NOT NULL AND (status = 'pending' OR status IS NULL);\n\nCREATE INDEX IF NOT EXISTS news_fetching_idx\n  ON public.news (claimed_at)\n  WHERE status = 'fetching';\n\n-- Extracted article bodies (no-op if you already have this table).\nCREATE TABLE IF NOT EXISTS public.news_content (\n  news_id     bigint PRIMARY KEY,\n  description text\n);\nALTER TABLE public.news_content\n  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();\n\n-- Live heartbeat of every connected worker.\nCREATE TABLE IF NOT EXISTS public.worker_status (\n  node_name   text PRIMARY KEY,\n  worker_type text,\n  status      text,\n  payload     jsonb,\n  updated_at  timestamptz NOT NULL DEFAULT now()\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -880,
+        1040
+      ],
+      "id": "c744556d-6467-4abe-aa7d-402c3ae82fc4",
+      "name": "Setup Schema (run once)",
+      "credentials": {
+        "postgres": {
+          "id": "alUY1iBQBgRZVD6G",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## 1 - GET BATCH\n`POST /webhook/content-get-batch`\n\nBody: `{ \"batch_size\": 60, \"node_name\": \"kaggle-extractor-1\" }`\n\nReturns `{ \"records\": [{id, rss_id, title, date, url}], \"count\": n }`\n\nRows flip `pending -> fetching` under `FOR UPDATE SKIP LOCKED`, so **any number of workers can call this at the same time** and never receive the same URL twice.",
+        "height": 380,
+        "width": 300,
+        "color": "4"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        -240
+      ],
+      "id": "a365467b-36d1-435e-abdf-2c4171cc99d7",
+      "name": "Sticky Note 816fac16"
+    },
+    {
+      "parameters": {
+        "content": "## 2 - SAVE CONTENT\n`POST /webhook/content-save`\n\nBody: `{ \"node_name\": \"...\", \"results\": [ {id, status, content} ] }`\n\n`status` is `content` or `error`.\n\nThe whole batch is written in **one** SQL statement: bodies upserted into `news_content`, `news.status` set to `content` / `error`, claim released.",
+        "height": 340,
+        "width": 300,
+        "color": "5"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        160
+      ],
+      "id": "370cbd63-480b-4360-a1f9-9c4d1148212a",
+      "name": "Sticky Note 20f2be8e"
+    },
+    {
+      "parameters": {
+        "content": "## 3 - WORKER HEARTBEAT\n`POST /webhook/content-status`\n\nUpserts `worker_status` (one row per `node_name`, full payload as jsonb).\n\nSee every live worker:\n`SELECT node_name, status, updated_at FROM worker_status ORDER BY updated_at DESC;`",
+        "height": 300,
+        "width": 300,
+        "color": "6"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        520
+      ],
+      "id": "8f544205-b32a-4ef7-896e-0e2b99bc0ffd",
+      "name": "Sticky Note ec481060"
+    },
+    {
+      "parameters": {
+        "content": "## 4 - CRASH RECOVERY\nWorkers die (Kaggle kills sessions). Any claim older than 20 min goes back to `pending`, so no URL is ever lost.",
+        "height": 180,
+        "width": 300,
+        "color": "3"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        840
+      ],
+      "id": "57c87450-1b18-4ed6-81ef-5cf7e88d27c7",
+      "name": "Sticky Note 53b413a5"
+    },
+    {
+      "parameters": {
+        "content": "## 5 - SETUP (run once)\nClick **Test step** on the node to the right before using the API. Adds `news.claimed_at`, the queue indexes and the `worker_status` table. Safe to re-run.",
+        "height": 200,
+        "width": 300,
+        "color": "7"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        1040
+      ],
+      "id": "242900dd-948e-47d0-abed-b7f6ed0357f1",
+      "name": "Sticky Note b8a15f4e"
+    },
+    {
+      "parameters": {
+        "content": "## AUTH\nEvery webhook needs the header\n\n`X-API-Key: mer30kehasti`\n\nChange it in the three **Auth -** IF nodes.\n\n## BEFORE YOU ACTIVATE\nTurn OFF the old *content extractor History* workflow - it claims rows from the same queue.",
+        "height": 320,
+        "width": 320,
+        "color": "2"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        620
+      ],
+      "id": "d7e66a52-eff1-40b4-b45f-e0ec1191a128",
+      "name": "Sticky Note be1af08c"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Get Batch": {
+      "main": [
+        [
+          {
+            "node": "Auth - Get Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth - Get Batch": {
+      "main": [
+        [
+          {
+            "node": "Claim Batch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Batch": {
+      "main": [
+        [
+          {
+            "node": "Build Batch Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Batch Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Save Content": {
+      "main": [
+        [
+          {
+            "node": "Auth - Save Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth - Save Content": {
+      "main": [
+        [
+          {
+            "node": "Normalize Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Results": {
+      "main": [
+        [
+          {
+            "node": "Save Content Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Content Batch": {
+      "main": [
+        [
+          {
+            "node": "Respond - Saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Worker Status": {
+      "main": [
+        [
+          {
+            "node": "Auth - Worker Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth - Worker Status": {
+      "main": [
+        [
+          {
+            "node": "Build Status Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Status Row": {
+      "main": [
+        [
+          {
+            "node": "Upsert Worker Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Worker Status": {
+      "main": [
+        [
+          {
+            "node": "Respond - Status OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 5 min": {
+      "main": [
+        [
+          {
+            "node": "Reclaim Stale Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run setup once": {
+      "main": [
+        [
+          {
+            "node": "Setup Schema (run once)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 120
+  },
+  "versionId": "d736ca83-4deb-427b-aa40-e738be62b6e2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b402ccc565fd03ac760bdcb0ca28086f9d1b5610890b16ceb1c84f9e4242cc5"
+  },
+  "tags": []
+}
