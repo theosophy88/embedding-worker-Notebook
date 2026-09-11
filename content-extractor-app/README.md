@@ -88,10 +88,18 @@ so it is the fastest way to work out why a site fails.
 ## Commands
 
 ```bash
-cd /opt/content-extractor
-sudo -u extractor venv/bin/python -m extractor doctor          # check everything
-sudo -u extractor venv/bin/python -m extractor test URL        # try one page
-sudo -u extractor venv/bin/python -m extractor config          # effective config
+sudo content-extractor doctor        # check machine, config and the n8n API
+sudo content-extractor test URL      # extract one page, writes nothing
+sudo content-extractor config        # the effective configuration
+```
+
+`install.sh` puts that wrapper in `/usr/local/bin`; it runs the CLI as the
+service user from the right directory, so it works from anywhere. Without it
+(older install, or a manual setup) the equivalent is:
+
+```bash
+cd /opt/content-extractor/app
+sudo -u extractor /opt/content-extractor/venv/bin/python -m extractor doctor
 ```
 
 `doctor` verifies Python, every dependency, the config, DNS, outbound HTTPS,
@@ -181,6 +189,7 @@ concentrated on a few, because of the per-domain pacing.
 | `404 … is the workflow Active?` | the n8n workflow is in test mode; activate it |
 | Every batch returns 0 records | queue is empty, or the old *content extractor History* workflow is draining it — deactivate that one |
 | Service restarts in a loop | `journalctl -u content-extractor -n 50`; usually a config error, which `doctor` names exactly |
+| `No module named extractor` | run `sudo content-extractor doctor`, or `cd /opt/content-extractor/app` first — the package lives there, not in `/opt/content-extractor` |
 | Panel does not load | check `PANEL_HOST`; on `127.0.0.1` you need the SSH tunnel above |
 | Lots of `bot_challenge` | try `RENDER_FALLBACK=true` (needs `--with-browser`); some sites stay closed, and that is the correct outcome |
 | Lots of `too_short` | the site builds its article with JavaScript — same answer |
@@ -210,6 +219,7 @@ panel without starting extraction.
 
 ```
 install.sh                 one-command install, 9 verified steps
+bin/content-extractor      CLI wrapper installed to /usr/local/bin
 uninstall.sh               stop, disable, optionally purge
 config.example.env         every setting, documented
 systemd/                   the unit template install.sh fills in

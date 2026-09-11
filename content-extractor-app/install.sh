@@ -215,6 +215,23 @@ if [ "$OPT_WITH_BROWSER" -eq 1 ]; then
   ok "chromium installed"
 fi
 
+# Make `python -m extractor` resolve from any directory, not just app/.
+"$VENV_PY" - "$INSTALL_DIR/app" <<'PYEOF'
+import pathlib, sys, sysconfig
+
+target = sys.argv[1]
+pth = pathlib.Path(sysconfig.get_paths()["purelib"]) / "content-extractor.pth"
+pth.write_text(target + "
+", encoding="utf-8")
+print(f"      import path: {pth}")
+PYEOF
+
+# Convenience wrapper so `content-extractor doctor` works from anywhere.
+if [ -f "$SRC_DIR/bin/content-extractor" ]; then
+  install -m 755 "$SRC_DIR/bin/content-extractor" /usr/local/bin/content-extractor
+  ok "/usr/local/bin/content-extractor installed"
+fi
+
 chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 
 # ===========================================================================
@@ -322,8 +339,7 @@ if [ "$HAS_SYSTEMD" -eq 1 ]; then
   ok "${UNIT_FILE} installed and enabled at boot"
 else
   warn "skipped - run it yourself with:"
-  info "  sudo -u ${SERVICE_USER} env \$(grep -v '^#' ${CONFIG_FILE} | xargs) \\"
-  info "    ${INSTALL_DIR}/venv/bin/python -m extractor run"
+  info "  content-extractor run"
 fi
 
 # ===========================================================================
@@ -403,7 +419,7 @@ printf '  %sEveryday commands%s\n' "$BOLD" "$RESET"
 printf '    systemctl status %s\n' "$SERVICE_NAME"
 printf '    journalctl -fu %s          # live log\n' "$SERVICE_NAME"
 printf '    systemctl restart %s       # after editing the config\n' "$SERVICE_NAME"
-printf '    %s/venv/bin/python -m extractor doctor   # re-check everything\n' "$INSTALL_DIR"
-printf '    %s/venv/bin/python -m extractor test URL # try one page\n\n' "$INSTALL_DIR"
+printf '    content-extractor doctor            # re-check everything\n'
+printf '    content-extractor test URL          # try one page, writes nothing\n\n'
 printf '  Running more workers? Install on another box and give it a different\n'
 printf '  NODE_NAME - n8n hands every worker a different slice of the queue.\n\n'

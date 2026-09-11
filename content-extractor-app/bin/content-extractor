@@ -1,0 +1,39 @@
+#!/bin/sh
+# ============================================================================
+# content-extractor - run the CLI from anywhere
+#
+#   content-extractor doctor        check the machine, config and n8n API
+#   content-extractor test URL      extract one page, write nothing
+#   content-extractor config        print the effective configuration
+#
+# Installed to /usr/local/bin by install.sh. When run as root it drops to the
+# service user, so it reads the same config the service does and leaves no
+# root-owned files behind.
+# ============================================================================
+set -e
+
+INSTALL_DIR="/opt/content-extractor"
+APP_DIR="${INSTALL_DIR}/app"
+VENV_PY="${INSTALL_DIR}/venv/bin/python"
+SERVICE_USER="extractor"
+
+if [ ! -x "$VENV_PY" ]; then
+  echo "content-extractor is not installed (${VENV_PY} missing)." >&2
+  echo "Run install.sh first." >&2
+  exit 1
+fi
+
+cd "$APP_DIR" 2>/dev/null || {
+  echo "Application directory ${APP_DIR} is missing - re-run install.sh." >&2
+  exit 1
+}
+
+PYTHONDONTWRITEBYTECODE=1
+export PYTHONDONTWRITEBYTECODE
+
+if [ "$(id -u)" = "0" ] && id "$SERVICE_USER" >/dev/null 2>&1 \
+   && command -v runuser >/dev/null 2>&1; then
+  exec runuser -u "$SERVICE_USER" -- "$VENV_PY" -m extractor "$@"
+fi
+
+exec "$VENV_PY" -m extractor "$@"

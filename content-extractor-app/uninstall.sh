@@ -33,6 +33,8 @@ if [ "$PURGE" -eq 1 ] && [ "$ASSUME_YES" -eq 0 ]; then
   [ "$answer" = "purge" ] || { printf 'Cancelled.\n'; exit 1; }
 fi
 
+rm -f /usr/local/bin/content-extractor
+
 if command -v systemctl >/dev/null 2>&1; then
   systemctl stop "$SERVICE_NAME" 2>/dev/null || true
   systemctl disable "$SERVICE_NAME" 2>/dev/null || true
