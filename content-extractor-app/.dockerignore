@@ -1,0 +1,28 @@
+# Keep the build context small and secret-free. The Dockerfile only needs
+# requirements.txt and the extractor/ package.
+.git
+.gitignore
+.gitattributes
+**/__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Never bake local config / secrets into the image (config is env-driven).
+*.env
+
+# Docs, host-install tooling and n8n exports are not needed at runtime.
+README.md
+MIKROTIK.md
+systemd/
+install.sh
+uninstall.sh
+bin/
+n8n/
+
+# Build/compose files themselves.
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-build.sh
