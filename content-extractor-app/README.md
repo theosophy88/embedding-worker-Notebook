@@ -227,6 +227,23 @@ Any setting can come from the environment instead of the file, which is all a
 container needs. `--no-panel` runs the worker alone; `--no-worker` brings up the
 panel without starting extraction.
 
+### Docker / containers (incl. MikroTik RouterOS)
+
+A `Dockerfile` builds a small, env-configured image (no headless browser, so it
+stays light). Test it locally first:
+
+```bash
+cp config.example.env .env      # set N8N_BASE_URL, N8N_API_KEY, PANEL_PASSWORD
+docker compose up --build       # panel at http://127.0.0.1:8787
+```
+
+`docker-build.sh` builds the image for an amd64 host and either pushes it to a
+registry or saves a `.tar` for offline import.
+
+To run it inside a **MikroTik RouterOS v7 container** (x86/CHR), see
+**[MIKROTIK.md](MIKROTIK.md)** — full step-by-step for device-mode, a container
+disk, veth/bridge/NAT networking, and env tuning for a small-RAM router.
+
 ---
 
 ## Layout

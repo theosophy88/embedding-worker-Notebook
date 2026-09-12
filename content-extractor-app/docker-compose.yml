@@ -1,0 +1,29 @@
+# Local smoke test BEFORE deploying to the router. Run this on your laptop/VPS:
+#
+#   cp config.example.env .env      # then edit: N8N_BASE_URL, N8N_API_KEY, PANEL_PASSWORD
+#   docker compose up --build
+#   open http://127.0.0.1:8787      # user/password from .env (or the startup log)
+#
+# Once it claims and saves rows here, deploy the same image to MikroTik with
+# MIKROTIK.md. This file is only for testing — RouterOS does not use compose.
+services:
+  content-extractor:
+    build:
+      context: .
+      # Building on an arm host (e.g. Apple silicon) for an amd64 router?
+      # Uncomment to force the router's architecture:
+      # platforms: ["linux/amd64"]
+    image: content-extractor:latest
+    env_file:
+      - .env
+    environment:
+      NODE_NAME: local-test
+      PANEL_HOST: 0.0.0.0
+      RENDER_FALLBACK: "false"
+    ports:
+      # Panel bound to loopback on the host — reach it at http://127.0.0.1:8787
+      - "127.0.0.1:8787:8787"
+    restart: unless-stopped
+    # Test inside the same memory budget the router has free (~700 MB), so a
+    # setting that OOMs on the router OOMs here first.
+    mem_limit: 700m
