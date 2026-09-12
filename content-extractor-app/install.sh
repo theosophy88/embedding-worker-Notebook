@@ -142,12 +142,37 @@ export DEBIAN_FRONTEND=noninteractive
 APT_PACKAGES="python3 python3-venv python3-pip ca-certificates curl tzdata"
 
 info "apt-get update"
-apt-get update -qq || die "apt-get update failed - check the network and apt sources"
+if ! apt-get update -qq; then
+  warn "apt-get update reported errors - continuing with the cached package lists"
+fi
 
 info "installing: ${APT_PACKAGES}"
+# apt configures every pending package, so ONE unrelated broken package (a
+# control panel, a kernel hook) makes this command fail even when everything we
+# asked for installed fine. Judge by what we actually need, not by apt's exit
+# code. (`if !` also keeps the ERR trap out of it.)
 # shellcheck disable=SC2086
-apt-get install -y -qq --no-install-recommends $APT_PACKAGES \
-  || die "apt-get install failed - see the output above"
+if ! apt-get install -y -qq --no-install-recommends $APT_PACKAGES; then
+  MISSING=""
+  for pkg in $APT_PACKAGES; do
+    if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null \
+         | grep -q '^install ok installed$'; then
+      MISSING="${MISSING} ${pkg}"
+    fi
+  done
+
+  if [ -n "$MISSING" ]; then
+    die "apt could not install:${MISSING}
+       See the output above for the reason. A single broken package blocks apt
+       for everything, so try these, then re-run this installer:
+         sudo apt-get install -f
+         sudo dpkg --configure -a"
+  fi
+
+  warn "apt exited with an error, but every package we need IS installed"
+  warn "the failure was in an unrelated package (see above) - it does not affect"
+  warn "this install; fix it later with: sudo apt-get install -f"
+fi
 
 PY_VERSION="$($PYTHON -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])')"
 PY_MINOR="$($PYTHON -c 'import sys; print(sys.version_info.minor)')"
@@ -206,13 +231,23 @@ info "installing python dependencies (this takes a minute)"
   || die "Dependency install failed - see the output above"
 ok "dependencies installed"
 
+# The browser is an optional extra, and `playwright install --with-deps` runs
+# apt - so on a host with a broken package it fails for reasons that have
+# nothing to do with us. Warn and carry on rather than abandoning the install;
+# RENDER_FALLBACK stays off so we never enable a feature that cannot run.
+BROWSER_OK=0
 if [ "$OPT_WITH_BROWSER" -eq 1 ]; then
   info "installing playwright + chromium (a few hundred MB)"
-  "$VENV_PY" -m pip install --quiet playwright || die "Could not install playwright"
-  PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers" \
-    "$INSTALL_DIR/venv/bin/playwright" install --with-deps chromium \
-    || die "Chromium install failed - see the output above"
-  ok "chromium installed"
+  if ! "$VENV_PY" -m pip install --quiet playwright; then
+    warn "could not install the playwright package - browser fallback stays off"
+  elif ! PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers" \
+         "$INSTALL_DIR/venv/bin/playwright" install --with-deps chromium; then
+    warn "chromium install failed (see above) - browser fallback stays off"
+    warn "fix apt, then: sudo bash install.sh --with-browser"
+  else
+    BROWSER_OK=1
+    ok "chromium installed"
+  fi
 fi
 
 # Make `python -m extractor` resolve from any directory, not just app/.
@@ -304,7 +339,7 @@ fi
 [ -n "$OPT_THREADS" ] && set_config THREADS "$OPT_THREADS"
 [ -n "$OPT_BATCH" ]   && set_config BATCH_SIZE "$OPT_BATCH"
 [ -n "$OPT_PROXY" ]   && set_config PROXY_URL "$OPT_PROXY"
-[ "$OPT_WITH_BROWSER" -eq 1 ] && set_config RENDER_FALLBACK "true"
+[ "$BROWSER_OK" -eq 1 ]  && set_config RENDER_FALLBACK "true"
 
 # --- panel ---
 [ -n "$OPT_PANEL_PORT" ] && set_config PANEL_PORT "$OPT_PANEL_PORT"
